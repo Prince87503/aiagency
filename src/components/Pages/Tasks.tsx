@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/lib/supabase'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatDateTime } from '@/lib/utils'
 
 interface Task {
   id: string
@@ -492,6 +492,19 @@ export const Tasks: React.FC = () => {
     setSelectedTask(task)
     setSelectedContactId(task.contact_id)
     setContactSearchTerm(task.contact_name || '')
+
+    // Convert datetime from database to datetime-local input format (YYYY-MM-DDTHH:MM)
+    const formatDateTimeForInput = (dateStr: string | null) => {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+
     setFormData({
       title: task.title,
       description: task.description || '',
@@ -500,8 +513,8 @@ export const Tasks: React.FC = () => {
       assignedTo: task.assigned_to || '',
       contactName: task.contact_name || '',
       contactPhone: task.contact_phone || '',
-      dueDate: task.due_date || '',
-      startDate: task.start_date || '',
+      dueDate: formatDateTimeForInput(task.due_date),
+      startDate: formatDateTimeForInput(task.start_date),
       estimatedHours: task.estimated_hours?.toString() || '',
       category: task.category,
       progressPercentage: task.progress_percentage,
@@ -1213,8 +1226,8 @@ export const Tasks: React.FC = () => {
                         <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
                           <Calendar className="w-5 h-5 text-gray-400" />
                           <div>
-                            <div className="text-sm text-gray-600">Start Date</div>
-                            <div className="font-medium">{formatDate(selectedTask.start_date)}</div>
+                            <div className="text-sm text-gray-600">Start Date & Time</div>
+                            <div className="font-medium">{formatDateTime(selectedTask.start_date)}</div>
                           </div>
                         </div>
                       )}
@@ -1223,8 +1236,8 @@ export const Tasks: React.FC = () => {
                         <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
                           <Calendar className="w-5 h-5 text-gray-400" />
                           <div>
-                            <div className="text-sm text-gray-600">Due Date</div>
-                            <div className="font-medium">{formatDate(selectedTask.due_date)}</div>
+                            <div className="text-sm text-gray-600">Due Date & Time</div>
+                            <div className="font-medium">{formatDateTime(selectedTask.due_date)}</div>
                           </div>
                         </div>
                       )}
@@ -1797,20 +1810,20 @@ export const Tasks: React.FC = () => {
 
                     {selectedTask.start_date && (
                       <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-500 mb-1">Start Date</div>
+                        <div className="text-xs text-gray-500 mb-1">Start Date & Time</div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">{formatDate(selectedTask.start_date)}</span>
+                          <span className="font-medium">{formatDateTime(selectedTask.start_date)}</span>
                         </div>
                       </div>
                     )}
 
                     {selectedTask.due_date && (
                       <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-500 mb-1">Due Date</div>
+                        <div className="text-xs text-gray-500 mb-1">Due Date & Time</div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">{formatDate(selectedTask.due_date)}</span>
+                          <span className="font-medium">{formatDateTime(selectedTask.due_date)}</span>
                         </div>
                       </div>
                     )}
