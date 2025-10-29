@@ -33,10 +33,9 @@ interface Task {
   estimated_hours: number | null
   actual_hours: number | null
   category: string
-  tags: string[]
   attachments: any
   progress_percentage: number
-  notes: string | null
+  supporting_documents: string[]
   created_at: string
   updated_at: string
 }
@@ -117,9 +116,8 @@ export const Tasks: React.FC = () => {
     startDate: '',
     estimatedHours: '',
     category: 'Other',
-    tags: '',
     progressPercentage: 0,
-    notes: ''
+    supportingDocuments: [] as string[]
   })
 
   useEffect(() => {
@@ -271,9 +269,8 @@ export const Tasks: React.FC = () => {
         start_date: formData.startDate || null,
         estimated_hours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : null,
         category: formData.category,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : [],
         progress_percentage: formData.progressPercentage || 0,
-        notes: formData.notes?.trim() || null
+        supporting_documents: formData.supportingDocuments || []
       }
 
       const { data, error } = await supabase
@@ -325,9 +322,8 @@ export const Tasks: React.FC = () => {
         start_date: formData.startDate || null,
         estimated_hours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : null,
         category: formData.category,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
         progress_percentage: formData.progressPercentage,
-        notes: formData.notes || null
+        supporting_documents: formData.supportingDocuments || []
       }
 
       if (formData.status === 'Completed' && !selectedTask.completion_date) {
@@ -387,9 +383,8 @@ export const Tasks: React.FC = () => {
       startDate: task.start_date || '',
       estimatedHours: task.estimated_hours?.toString() || '',
       category: task.category,
-      tags: task.tags.join(', '),
       progressPercentage: task.progress_percentage,
-      notes: task.notes || ''
+      supportingDocuments: task.supporting_documents || []
     })
     setView('edit')
   }
@@ -407,9 +402,8 @@ export const Tasks: React.FC = () => {
       startDate: '',
       estimatedHours: '',
       category: 'Other',
-      tags: '',
       progressPercentage: 0,
-      notes: ''
+      supportingDocuments: [] as string[]
     })
     setSelectedTask(null)
     setSelectedContactId(null)
@@ -946,23 +940,42 @@ export const Tasks: React.FC = () => {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma separated)</label>
-                      <Input
-                        value={formData.tags}
-                        onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                        placeholder="urgent, backend, api"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                      <textarea
-                        value={formData.notes}
-                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                        placeholder="Additional notes"
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Supporting Documents</label>
+                      <div className="space-y-2">
+                        <Input
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || [])
+                            console.log('Files selected:', files)
+                          }}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-gray-500">Upload supporting documents for this task (PDF, DOC, XLS, Images)</p>
+                        {formData.supportingDocuments && formData.supportingDocuments.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {formData.supportingDocuments.map((doc, index) => (
+                              <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                <FileText className="w-3 h-3" />
+                                {doc.split('/').pop()}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      supportingDocuments: prev.supportingDocuments.filter((_, i) => i !== index)
+                                    }))
+                                  }}
+                                  className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1107,23 +1120,17 @@ export const Tasks: React.FC = () => {
                     </div>
                   </div>
 
-                  {selectedTask.tags.length > 0 && (
+                  {selectedTask.supporting_documents && selectedTask.supporting_documents.length > 0 && (
                     <div>
-                      <h4 className="text-lg font-semibold text-brand-text mb-3">Tags</h4>
+                      <h4 className="text-lg font-semibold text-brand-text mb-3">Supporting Documents</h4>
                       <div className="flex flex-wrap gap-2">
-                        {selectedTask.tags.map((tag, index) => (
-                          <Badge key={index} className="bg-blue-100 text-blue-800">
-                            {tag}
+                        {selectedTask.supporting_documents.map((doc, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {doc.split('/').pop()}
                           </Badge>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {selectedTask.notes && (
-                    <div>
-                      <h4 className="text-lg font-semibold text-brand-text mb-3">Notes</h4>
-                      <p className="text-gray-600 bg-gray-50 p-4 rounded-lg">{selectedTask.notes}</p>
                     </div>
                   )}
                 </div>
@@ -1510,23 +1517,42 @@ export const Tasks: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma separated)</label>
-                  <Input
-                    value={formData.tags}
-                    onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                    placeholder="urgent, backend, api"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Additional notes"
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Supporting Documents</label>
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      multiple
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        console.log('Files selected:', files)
+                      }}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500">Upload supporting documents for this task (PDF, DOC, XLS, Images)</p>
+                    {formData.supportingDocuments && formData.supportingDocuments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.supportingDocuments.map((doc, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {doc.split('/').pop()}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  supportingDocuments: prev.supportingDocuments.filter((_, i) => i !== index)
+                                }))
+                              }}
+                              className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1637,23 +1663,17 @@ export const Tasks: React.FC = () => {
                       </div>
                     </div>
 
-                    {selectedTask.tags.length > 0 && (
+                    {selectedTask.supporting_documents && selectedTask.supporting_documents.length > 0 && (
                       <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-500 mb-2">Tags</div>
+                        <div className="text-xs text-gray-500 mb-2">Supporting Documents</div>
                         <div className="flex flex-wrap gap-2">
-                          {selectedTask.tags.map((tag, index) => (
-                            <Badge key={index} className="bg-blue-100 text-blue-800">
-                              {tag}
+                          {selectedTask.supporting_documents.map((doc, index) => (
+                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                              <FileText className="w-3 h-3" />
+                              {doc.split('/').pop()}
                             </Badge>
                           ))}
                         </div>
-                      </div>
-                    )}
-
-                    {selectedTask.notes && (
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-500 mb-1">Notes</div>
-                        <p className="text-sm text-gray-700">{selectedTask.notes}</p>
                       </div>
                     )}
                   </div>
