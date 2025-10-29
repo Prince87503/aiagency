@@ -386,7 +386,7 @@ export function Leads() {
       const allFields = Object.values(customFields).flat()
 
       for (const field of allFields) {
-        const value = customFieldValues[field.id] || ''
+        const value = (customFieldValues[field.id] || '').trim()
 
         const { data: existing } = await supabase
           .from('custom_field_values')
@@ -396,10 +396,17 @@ export function Leads() {
           .maybeSingle()
 
         if (existing) {
-          await supabase
-            .from('custom_field_values')
-            .update({ field_value: value, updated_at: new Date().toISOString() })
-            .eq('id', existing.id)
+          if (value) {
+            await supabase
+              .from('custom_field_values')
+              .update({ field_value: value, updated_at: new Date().toISOString() })
+              .eq('id', existing.id)
+          } else {
+            await supabase
+              .from('custom_field_values')
+              .delete()
+              .eq('id', existing.id)
+          }
         } else {
           if (value) {
             await supabase
