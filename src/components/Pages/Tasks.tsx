@@ -220,34 +220,117 @@ export const Tasks: React.FC = () => {
     const FOLDER_ID = '88babbbd-3e5d-49fa-b4dc-ff4b81f2cdda'
     const uploadedUrls: string[] = []
 
-    for (const file of files) {
-      try {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${FOLDER_ID}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+    try {
+      // Fetch GHL integration settings
+      const { data: integration, error: integrationError } = await supabase
+        .from('integrations')
+        .select('config')
+        .eq('integration_type', 'ghl_api')
+        .maybeSingle()
 
-        const { data, error } = await supabase.storage
-          .from('media-files')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
+      if (integrationError) {
+        console.error('Integration fetch error:', integrationError)
+        throw new Error('Failed to fetch integration settings')
+      }
+
+      if (!integration) {
+        alert('GHL API integration not found. Please configure it in Settings > Integrations first.')
+        return []
+      }
+
+      const accessToken = integration?.config?.accessToken
+      if (!accessToken || accessToken.trim() === '') {
+        alert('GHL Access Token is not configured. Please add your access token in Settings > Integrations > GHL API.')
+        return []
+      }
+
+      const locationId = integration?.config?.locationId || 'iDIRFjdZBWH7SqBzTowc'
+      if (!locationId || locationId.trim() === '') {
+        alert('GHL Location ID is not configured. Please add your Location ID in Settings > Integrations > GHL API.')
+        return []
+      }
+
+      // Get the GHL folder ID from media_folders table
+      const { data: folderData } = await supabase
+        .from('media_folders')
+        .select('ghl_folder_id')
+        .eq('id', FOLDER_ID)
+        .maybeSingle()
+
+      const ghlParentId = folderData?.ghl_folder_id || null
+
+      // Upload each file to GHL
+      for (const file of files) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('name', file.name)
+          if (ghlParentId) {
+            formData.append('parentId', ghlParentId)
+          }
+
+          console.log('Uploading file to GHL:', {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            parentId: ghlParentId
           })
 
-        if (error) {
-          console.error('Error uploading file:', error)
-          throw error
-        }
+          const response = await fetch('https://services.leadconnectorhq.com/medias/upload-file', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Version': '2021-07-28',
+              'Authorization': `Bearer ${accessToken.trim()}`
+            },
+            body: formData
+          })
 
-        if (data) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('media-files')
-            .getPublicUrl(data.path)
+          if (!response.ok) {
+            let errorMessage = 'Failed to upload file to GHL'
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.message || errorData.error || errorMessage
+              console.error('GHL API Error:', errorData)
+            } catch (e) {
+              const errorText = await response.text()
+              console.error('GHL API Error (text):', errorText)
+              errorMessage = errorText || errorMessage
+            }
+            throw new Error(`${errorMessage} (Status: ${response.status})`)
+          }
 
-          uploadedUrls.push(publicUrl)
+          const ghlFile = await response.json()
+          console.log('GHL file uploaded:', ghlFile)
+
+          // Save file metadata to media_files table
+          const fileUrl = ghlFile.url || ghlFile.fileUrl || ''
+          const { error: insertError } = await supabase
+            .from('media_files')
+            .insert([{
+              file_name: file.name,
+              file_url: fileUrl,
+              file_type: file.type,
+              file_size: file.size,
+              ghl_file_id: ghlFile._id || ghlFile.id,
+              folder_id: FOLDER_ID,
+              location_id: locationId,
+              thumbnail_url: ghlFile.thumbnailUrl || null
+            }])
+
+          if (insertError) {
+            console.error('Error saving file metadata:', insertError)
+          }
+
+          uploadedUrls.push(fileUrl)
+        } catch (error) {
+          console.error('Error uploading file:', file.name, error)
+          alert(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
-      } catch (error) {
-        console.error('Error uploading file:', file.name, error)
-        alert(`Failed to upload ${file.name}`)
       }
+    } catch (error) {
+      console.error('Error in file upload process:', error)
+      alert(`Failed to upload files: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 
     return uploadedUrls
