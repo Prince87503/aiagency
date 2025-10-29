@@ -191,6 +191,8 @@ export function Leads() {
   const [customTabs, setCustomTabs] = useState<CustomTab[]>([])
   const [customFields, setCustomFields] = useState<Record<string, CustomField[]>>({})
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
+  const [isSavingCustomFields, setIsSavingCustomFields] = useState(false)
+  const [customFieldsMessage, setCustomFieldsMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
