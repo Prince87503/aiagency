@@ -130,7 +130,7 @@ interface CustomField {
   field_key: string
   custom_tab_id: string
   field_name: string
-  field_type: 'text' | 'dropdown_single' | 'dropdown_multiple' | 'date'
+  field_type: 'text' | 'dropdown_single' | 'dropdown_multiple' | 'date' | 'number' | 'email' | 'phone' | 'url' | 'currency' | 'longtext'
   dropdown_options: string[]
   is_required: boolean
   display_order: number
@@ -2315,6 +2315,59 @@ export function Leads() {
                                       type="date"
                                       value={customFieldValues[field.id] || ''}
                                       onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                    />
+                                  )}
+                                  {field.field_type === 'number' && (
+                                    <Input
+                                      type="number"
+                                      value={customFieldValues[field.id] || ''}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                                    />
+                                  )}
+                                  {field.field_type === 'email' && (
+                                    <Input
+                                      type="email"
+                                      value={customFieldValues[field.id] || ''}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                                    />
+                                  )}
+                                  {field.field_type === 'phone' && (
+                                    <Input
+                                      type="tel"
+                                      value={customFieldValues[field.id] || ''}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                                    />
+                                  )}
+                                  {field.field_type === 'url' && (
+                                    <Input
+                                      type="url"
+                                      value={customFieldValues[field.id] || ''}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                                    />
+                                  )}
+                                  {field.field_type === 'currency' && (
+                                    <div className="relative">
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={customFieldValues[field.id] || ''}
+                                        onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                        placeholder="0.00"
+                                        className="pl-7"
+                                      />
+                                    </div>
+                                  )}
+                                  {field.field_type === 'longtext' && (
+                                    <Textarea
+                                      value={customFieldValues[field.id] || ''}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                                      rows={4}
                                     />
                                   )}
                                 </div>
