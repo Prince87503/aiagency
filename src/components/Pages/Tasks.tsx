@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckSquare, Eye, Edit, Trash2, Plus, X, Save, ArrowLeft, ChevronRight, Users, Calendar, Clock, AlertCircle, TrendingUp, ListTodo, Target, Flag, MoreVertical, FileText, RefreshCw } from 'lucide-react'
+import { CheckSquare, Eye, Edit, Trash2, Plus, X, Save, ArrowLeft, ChevronRight, Users, Calendar, Clock, AlertCircle, TrendingUp, ListTodo, Target, Flag, MoreVertical, FileText, RefreshCw, Bell, BellPlus } from 'lucide-react'
 import { PageHeader } from '@/components/Common/PageHeader'
 import { KPICard } from '@/components/Common/KPICard'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,18 @@ interface Contact {
   business_name: string | null
 }
 
+interface TaskReminder {
+  id?: string
+  task_id?: string
+  reminder_type: 'start_date' | 'due_date' | 'custom'
+  custom_datetime: string | null
+  offset_timing: 'before' | 'after'
+  offset_value: number
+  offset_unit: 'minutes' | 'hours' | 'days'
+  calculated_reminder_time?: string | null
+  is_sent?: boolean
+}
+
 const statusColors: Record<string, string> = {
   'To Do': 'bg-gray-100 text-gray-800',
   'In Progress': 'bg-blue-100 text-blue-800',
@@ -105,6 +117,16 @@ export const Tasks: React.FC = () => {
   const [returnToContactId, setReturnToContactId] = useState<string | null>(null)
   const [returnToLeadId, setReturnToLeadId] = useState<string | null>(null)
   const [uploadingFiles, setUploadingFiles] = useState(false)
+  const [reminders, setReminders] = useState<TaskReminder[]>([])
+  const [showReminderForm, setShowReminderForm] = useState(false)
+  const [editingReminderId, setEditingReminderId] = useState<string | null>(null)
+  const [reminderFormData, setReminderFormData] = useState<TaskReminder>({
+    reminder_type: 'due_date',
+    custom_datetime: null,
+    offset_timing: 'before',
+    offset_value: 1,
+    offset_unit: 'hours'
+  })
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -214,6 +236,114 @@ export const Tasks: React.FC = () => {
     } catch (error) {
       console.error('Error fetching team members:', error)
     }
+  }
+
+  const fetchReminders = async (taskId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('task_reminders')
+        .select('*')
+        .eq('task_id', taskId)
+        .order('calculated_reminder_time', { ascending: true })
+
+      if (error) throw error
+      setReminders(data || [])
+    } catch (error) {
+      console.error('Error fetching reminders:', error)
+    }
+  }
+
+  const handleAddReminder = async () => {
+    if (!selectedTask) return
+
+    try {
+      const reminderData = {
+        task_id: selectedTask.id,
+        reminder_type: reminderFormData.reminder_type,
+        custom_datetime: reminderFormData.reminder_type === 'custom' && reminderFormData.custom_datetime
+          ? convertISTToUTC(reminderFormData.custom_datetime)
+          : null,
+        offset_timing: reminderFormData.offset_timing,
+        offset_value: reminderFormData.offset_value,
+        offset_unit: reminderFormData.offset_unit
+      }
+
+      if (editingReminderId) {
+        const { error } = await supabase
+          .from('task_reminders')
+          .update(reminderData)
+          .eq('id', editingReminderId)
+
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('task_reminders')
+          .insert(reminderData)
+
+        if (error) throw error
+      }
+
+      await fetchReminders(selectedTask.id)
+      resetReminderForm()
+    } catch (error) {
+      console.error('Error saving reminder:', error)
+      alert('Failed to save reminder')
+    }
+  }
+
+  const handleEditReminder = (reminder: TaskReminder) => {
+    setEditingReminderId(reminder.id || null)
+    setReminderFormData({
+      reminder_type: reminder.reminder_type,
+      custom_datetime: reminder.custom_datetime ? convertUTCToISTForInput(reminder.custom_datetime) : null,
+      offset_timing: reminder.offset_timing,
+      offset_value: reminder.offset_value,
+      offset_unit: reminder.offset_unit
+    })
+    setShowReminderForm(true)
+  }
+
+  const handleDeleteReminder = async (reminderId: string) => {
+    if (!confirm('Are you sure you want to delete this reminder?')) return
+
+    try {
+      const { error } = await supabase
+        .from('task_reminders')
+        .delete()
+        .eq('id', reminderId)
+
+      if (error) throw error
+
+      if (selectedTask) {
+        await fetchReminders(selectedTask.id)
+      }
+    } catch (error) {
+      console.error('Error deleting reminder:', error)
+      alert('Failed to delete reminder')
+    }
+  }
+
+  const resetReminderForm = () => {
+    setReminderFormData({
+      reminder_type: 'due_date',
+      custom_datetime: null,
+      offset_timing: 'before',
+      offset_value: 1,
+      offset_unit: 'hours'
+    })
+    setShowReminderForm(false)
+    setEditingReminderId(null)
+  }
+
+  const formatReminderDisplay = (reminder: TaskReminder) => {
+    const typeLabel = reminder.reminder_type === 'start_date' ? 'Start Date'
+      : reminder.reminder_type === 'due_date' ? 'Due Date'
+      : 'Custom Date'
+
+    const offsetLabel = `${reminder.offset_value} ${reminder.offset_unit}`
+    const timingLabel = reminder.offset_timing === 'before' ? 'before' : 'after'
+
+    return `${offsetLabel} ${timingLabel} ${typeLabel}`
   }
 
   const handleFileUpload = async (files: File[]): Promise<string[]> => {
@@ -483,12 +613,13 @@ export const Tasks: React.FC = () => {
     }
   }
 
-  const handleViewTask = (task: Task) => {
+  const handleViewTask = async (task: Task) => {
     setSelectedTask(task)
+    await fetchReminders(task.id)
     setView('view')
   }
 
-  const handleEditClick = (task: Task) => {
+  const handleEditClick = async (task: Task) => {
     setSelectedTask(task)
     setSelectedContactId(task.contact_id)
     setContactSearchTerm(task.contact_name || '')
@@ -508,6 +639,7 @@ export const Tasks: React.FC = () => {
       progressPercentage: task.progress_percentage,
       supportingDocuments: task.supporting_documents || []
     })
+    await fetchReminders(task.id)
     setView('edit')
   }
 
@@ -1122,6 +1254,209 @@ export const Tasks: React.FC = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Reminders Section - Only show in edit mode */}
+                    {view === 'edit' && selectedTask && (
+                      <div className="md:col-span-2">
+                        <div className="border-t border-gray-200 pt-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <Bell className="w-5 h-5 text-gray-600" />
+                              <h4 className="text-lg font-semibold text-gray-800">Reminders</h4>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => setShowReminderForm(!showReminderForm)}
+                              variant={showReminderForm ? "outline" : "default"}
+                            >
+                              {showReminderForm ? (
+                                <>
+                                  <X className="w-4 h-4 mr-2" />
+                                  Cancel
+                                </>
+                              ) : (
+                                <>
+                                  <BellPlus className="w-4 h-4 mr-2" />
+                                  Add Reminder
+                                </>
+                              )}
+                            </Button>
+                          </div>
+
+                          {showReminderForm && (
+                            <div className="bg-gray-50 p-4 rounded-lg mb-4 space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Reminder Type
+                                  </label>
+                                  <Select
+                                    value={reminderFormData.reminder_type}
+                                    onValueChange={(value: any) => {
+                                      setReminderFormData(prev => ({
+                                        ...prev,
+                                        reminder_type: value,
+                                        custom_datetime: value === 'custom' ? '' : null
+                                      }))
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="start_date">Start Date/Time</SelectItem>
+                                      <SelectItem value="due_date">Due Date/Time</SelectItem>
+                                      <SelectItem value="custom">Custom Date/Time</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {reminderFormData.reminder_type === 'custom' && (
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Custom Date & Time
+                                    </label>
+                                    <Input
+                                      type="datetime-local"
+                                      value={reminderFormData.custom_datetime || ''}
+                                      onChange={(e) =>
+                                        setReminderFormData(prev => ({
+                                          ...prev,
+                                          custom_datetime: e.target.value
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                )}
+
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Timing
+                                  </label>
+                                  <Select
+                                    value={reminderFormData.offset_timing}
+                                    onValueChange={(value: any) =>
+                                      setReminderFormData(prev => ({ ...prev, offset_timing: value }))
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="before">Before</SelectItem>
+                                      <SelectItem value="after">After</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Offset Value
+                                  </label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={reminderFormData.offset_value}
+                                    onChange={(e) =>
+                                      setReminderFormData(prev => ({
+                                        ...prev,
+                                        offset_value: parseInt(e.target.value) || 0
+                                      }))
+                                    }
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Offset Unit
+                                  </label>
+                                  <Select
+                                    value={reminderFormData.offset_unit}
+                                    onValueChange={(value: any) =>
+                                      setReminderFormData(prev => ({ ...prev, offset_unit: value }))
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="minutes">Minutes</SelectItem>
+                                      <SelectItem value="hours">Hours</SelectItem>
+                                      <SelectItem value="days">Days</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2">
+                                <Button type="button" size="sm" onClick={handleAddReminder}>
+                                  {editingReminderId ? 'Update Reminder' : 'Save Reminder'}
+                                </Button>
+                                {editingReminderId && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={resetReminderForm}
+                                  >
+                                    Cancel Edit
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {reminders.length > 0 ? (
+                            <div className="space-y-2">
+                              {reminders.map((reminder) => (
+                                <div
+                                  key={reminder.id}
+                                  className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <Bell className="w-4 h-4 text-blue-600" />
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-900">
+                                        {formatReminderDisplay(reminder)}
+                                      </p>
+                                      {reminder.calculated_reminder_time && (
+                                        <p className="text-xs text-gray-500">
+                                          {formatDateTime(reminder.calculated_reminder_time)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditReminder(reminder)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteReminder(reminder.id!)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 text-center py-4">
+                              No reminders set. Click "Add Reminder" to create one.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3 pt-4">
@@ -1282,6 +1617,40 @@ export const Tasks: React.FC = () => {
                               {doc.split('/').pop()?.split('_').slice(1).join('_') || 'Document'}
                             </Badge>
                           </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {reminders.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-brand-text mb-3 flex items-center gap-2">
+                        <Bell className="w-5 h-5" />
+                        Reminders
+                      </h4>
+                      <div className="space-y-2">
+                        {reminders.map((reminder) => (
+                          <div
+                            key={reminder.id}
+                            className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                          >
+                            <Bell className="w-4 h-4 text-blue-600 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {formatReminderDisplay(reminder)}
+                              </p>
+                              {reminder.calculated_reminder_time && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Scheduled: {formatDateTime(reminder.calculated_reminder_time)}
+                                </p>
+                              )}
+                              {reminder.is_sent && reminder.sent_at && (
+                                <Badge variant="secondary" className="mt-1 text-xs">
+                                  Sent on {formatDateTime(reminder.sent_at)}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
