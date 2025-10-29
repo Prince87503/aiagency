@@ -85,23 +85,6 @@ export const getISTTimeString = () => {
   return `${hours}:${minutes}`
 }
 
-export const convertToISTForDB = (dateStr: string | null | undefined): string | null => {
-  if (!dateStr) return null
-
-  // If it's just a date (YYYY-MM-DD), interpret it as IST midnight
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return `${dateStr}T00:00:00+05:30`
-  }
-
-  // If it's a datetime-local format (YYYY-MM-DDTHH:MM), interpret it as IST
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(dateStr)) {
-    return `${dateStr}:00+05:30`
-  }
-
-  // Otherwise, return as is (already has timezone info)
-  return dateStr
-}
-
 export const formatLongDate = (date: Date | string) => {
   const d = new Date(date)
   return d.toLocaleString('en-IN', {
