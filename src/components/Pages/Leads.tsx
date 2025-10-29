@@ -2185,16 +2185,8 @@ export function Leads() {
                           <p className="font-medium mt-1">{selectedLead.phone}</p>
                         </div>
                         <div>
-                          <label className="text-sm text-gray-600">Company</label>
-                          <p className="font-medium mt-1">{selectedLead.company || 'N/A'}</p>
-                        </div>
-                        <div>
                           <label className="text-sm text-gray-600">Assigned To</label>
                           <p className="font-medium mt-1">{selectedLead.owner || 'Unassigned'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-600">Address</label>
-                          <p className="font-medium mt-1">{selectedLead.address || 'N/A'}</p>
                         </div>
                         <div>
                           <label className="text-sm text-gray-600">Created Date</label>
@@ -2213,12 +2205,6 @@ export function Leads() {
                           </div>
                         )}
                       </div>
-                      {selectedLead.notes && (
-                        <div className="mt-6">
-                          <label className="text-sm text-gray-600">Lead Notes</label>
-                          <p className="mt-2 p-4 bg-gray-50 rounded-lg text-gray-700">{selectedLead.notes}</p>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 )}
