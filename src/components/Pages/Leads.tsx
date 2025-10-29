@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, ArrowLeft, Eye, Edit, Trash2, X, Save, User, Mail, Phone, MapPin, Building, Calendar, MoreVertical, GripVertical, Users, RefreshCw, AlertCircle, ChevronRight, Clock, CheckSquare, Flag, StickyNote, Download, Upload, FileSpreadsheet, CheckCircle, XCircle, LayoutGrid, List, Layers } from 'lucide-react'
+import { Plus, ArrowLeft, Eye, CreditCard as Edit, Trash2, X, Save, User, Mail, Phone, MapPin, Building, Calendar, MoreVertical, GripVertical, Users, RefreshCw, AlertCircle, ChevronRight, Clock, CheckSquare, Flag, StickyNote, Download, Upload, FileSpreadsheet, CheckCircle, XCircle, LayoutGrid, List, Layers } from 'lucide-react'
 import { PageHeader } from '@/components/Common/PageHeader'
 import { KPICard } from '@/components/Common/KPICard'
 import { Button } from '@/components/ui/button'
