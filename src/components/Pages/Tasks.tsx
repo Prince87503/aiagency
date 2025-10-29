@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/lib/supabase'
-import { formatDate, formatDateTime } from '@/lib/utils'
+import { formatDate, formatDateTime, convertISTToUTC, convertUTCToISTForInput } from '@/lib/utils'
 
 interface Task {
   id: string
@@ -342,10 +342,10 @@ export const Tasks: React.FC = () => {
       return
     }
 
-    // Validate due date is not before start date
+    // Validate due date is not before start date (comparing IST datetimes)
     if (formData.startDate && formData.dueDate) {
-      const startDate = new Date(formData.startDate)
-      const dueDate = new Date(formData.dueDate)
+      const startDate = new Date(convertISTToUTC(formData.startDate))
+      const dueDate = new Date(convertISTToUTC(formData.dueDate))
       if (dueDate < startDate) {
         alert('Due date cannot be before start date')
         return
@@ -386,8 +386,8 @@ export const Tasks: React.FC = () => {
         contact_id: selectedContactId,
         contact_name: formData.contactName || null,
         contact_phone: formData.contactPhone || null,
-        due_date: formData.dueDate || null,
-        start_date: formData.startDate || null,
+        due_date: formData.dueDate ? convertISTToUTC(formData.dueDate) : null,
+        start_date: formData.startDate ? convertISTToUTC(formData.startDate) : null,
         estimated_hours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : null,
         category: formData.category,
         progress_percentage: formData.progressPercentage || 0,
@@ -416,10 +416,10 @@ export const Tasks: React.FC = () => {
   const handleEditTask = async () => {
     if (!selectedTask) return
 
-    // Validate due date is not before start date
+    // Validate due date is not before start date (comparing IST datetimes)
     if (formData.startDate && formData.dueDate) {
-      const startDate = new Date(formData.startDate)
-      const dueDate = new Date(formData.dueDate)
+      const startDate = new Date(convertISTToUTC(formData.startDate))
+      const dueDate = new Date(convertISTToUTC(formData.dueDate))
       if (dueDate < startDate) {
         alert('Due date cannot be before start date')
         return
@@ -439,8 +439,8 @@ export const Tasks: React.FC = () => {
         contact_id: selectedContactId,
         contact_name: formData.contactName || null,
         contact_phone: formData.contactPhone || null,
-        due_date: formData.dueDate || null,
-        start_date: formData.startDate || null,
+        due_date: formData.dueDate ? convertISTToUTC(formData.dueDate) : null,
+        start_date: formData.startDate ? convertISTToUTC(formData.startDate) : null,
         estimated_hours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : null,
         category: formData.category,
         progress_percentage: formData.progressPercentage,
@@ -493,18 +493,6 @@ export const Tasks: React.FC = () => {
     setSelectedContactId(task.contact_id)
     setContactSearchTerm(task.contact_name || '')
 
-    // Convert datetime from database to datetime-local input format (YYYY-MM-DDTHH:MM)
-    const formatDateTimeForInput = (dateStr: string | null) => {
-      if (!dateStr) return ''
-      const date = new Date(dateStr)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-      return `${year}-${month}-${day}T${hours}:${minutes}`
-    }
-
     setFormData({
       title: task.title,
       description: task.description || '',
@@ -513,8 +501,8 @@ export const Tasks: React.FC = () => {
       assignedTo: task.assigned_to || '',
       contactName: task.contact_name || '',
       contactPhone: task.contact_phone || '',
-      dueDate: formatDateTimeForInput(task.due_date),
-      startDate: formatDateTimeForInput(task.start_date),
+      dueDate: convertUTCToISTForInput(task.due_date),
+      startDate: convertUTCToISTForInput(task.start_date),
       estimatedHours: task.estimated_hours?.toString() || '',
       category: task.category,
       progressPercentage: task.progress_percentage,

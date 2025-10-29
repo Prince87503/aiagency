@@ -125,3 +125,28 @@ export const getEmailValidationError = (email: string, isRequired: boolean = fal
   }
   return null
 }
+
+export const convertISTToUTC = (istDateTimeString: string): string => {
+  if (!istDateTimeString) return ''
+
+  const [datePart, timePart] = istDateTimeString.split('T')
+  const [year, month, day] = datePart.split('-')
+  const [hours, minutes] = timePart.split(':')
+
+  const istDate = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00+05:30`)
+  return istDate.toISOString()
+}
+
+export const convertUTCToISTForInput = (utcDateString: string | null): string => {
+  if (!utcDateString) return ''
+
+  const date = new Date(utcDateString)
+
+  const istYear = date.toLocaleString('en-IN', { year: 'numeric', timeZone: 'Asia/Kolkata' })
+  const istMonth = date.toLocaleString('en-IN', { month: '2-digit', timeZone: 'Asia/Kolkata' })
+  const istDay = date.toLocaleString('en-IN', { day: '2-digit', timeZone: 'Asia/Kolkata' })
+  const istHours = date.toLocaleString('en-IN', { hour: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })
+  const istMinutes = date.toLocaleString('en-IN', { minute: '2-digit', timeZone: 'Asia/Kolkata' })
+
+  return `${istYear}-${istMonth}-${istDay}T${istHours}:${istMinutes}`
+}
