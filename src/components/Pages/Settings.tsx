@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Save, User, Bell, Shield, Palette, Globe, Database, Pause, Key, Mail, Phone, MapPin, Building, CreditCard, Smartphone, Monitor, Moon, Sun, Volume2, VolumeX, Eye, EyeOff, Copy, RefreshCw, Trash2, Plus, CreditCard as Edit, Zap, Link, Settings as SettingsIcon, Lock, Unlock, Play, Check, X, AlertTriangle, Info, Download, Upload, Calendar, GitBranch, FolderOpen } from 'lucide-react'
+import { Save, User, Bell, Shield, Palette, Globe, Database, Pause, Key, Mail, Phone, MapPin, Building, CreditCard, Smartphone, Monitor, Moon, Sun, Volume2, VolumeX, Eye, EyeOff, Copy, RefreshCw, Trash2, Plus, CreditCard as Edit, Zap, Link, Settings as SettingsIcon, Lock, Unlock, Play, Check, X, AlertTriangle, Info, Download, Upload, Calendar, GitBranch, FolderOpen, Layers } from 'lucide-react'
 import { PageHeader } from '@/components/Common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import { AppearanceSettings } from '@/components/Settings/AppearanceSettings'
 import { CalendarSettings } from '@/components/Settings/CalendarSettings'
 import { PipelineSettings } from '@/components/Settings/PipelineSettings'
 import { MediaFoldersSettings } from '@/components/Settings/MediaFoldersSettings'
+import { CustomFieldsSettings } from '@/components/Settings/CustomFieldsSettings'
 
 const mockIntegrations = [
   {
@@ -86,7 +87,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function Settings() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'integrations' | 'api' | 'system' | 'webhooks' | 'appearance' | 'calendar' | 'pipelines' | 'media-folders'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'integrations' | 'api' | 'system' | 'webhooks' | 'appearance' | 'calendar' | 'pipelines' | 'media-folders' | 'custom-fields'>('profile')
   const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({})
   const [editingIntegration, setEditingIntegration] = useState<string | null>(null)
   const [integrationConfig, setIntegrationConfig] = useState<Record<string, any>>({})
@@ -545,6 +546,7 @@ export function Settings() {
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'pipelines', label: 'Pipelines', icon: GitBranch },
     { id: 'media-folders', label: 'Media Folders', icon: FolderOpen },
+    { id: 'custom-fields', label: 'Custom Fields', icon: Layers },
     { id: 'integrations', label: 'Integrations', icon: Zap },
     { id: 'api', label: 'API Keys', icon: Key },
     { id: 'system', label: 'System', icon: SettingsIcon },
@@ -849,6 +851,16 @@ export function Settings() {
           animate={{ opacity: 1, y: 0 }}
         >
           <MediaFoldersSettings />
+        </motion.div>
+      )}
+
+      {/* Custom Fields */}
+      {activeTab === 'custom-fields' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <CustomFieldsSettings />
         </motion.div>
       )}
 

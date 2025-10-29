@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, ArrowLeft, Eye, Edit, Trash2, X, Save, User, Mail, Phone, MapPin, Building, Calendar, MoreVertical, GripVertical, Users, RefreshCw, AlertCircle, ChevronRight, Clock, CheckSquare, Flag, StickyNote, Download, Upload, FileSpreadsheet, CheckCircle, XCircle, LayoutGrid, List } from 'lucide-react'
+import { Plus, ArrowLeft, Eye, Edit, Trash2, X, Save, User, Mail, Phone, MapPin, Building, Calendar, MoreVertical, GripVertical, Users, RefreshCw, AlertCircle, ChevronRight, Clock, CheckSquare, Flag, StickyNote, Download, Upload, FileSpreadsheet, CheckCircle, XCircle, LayoutGrid, List, Layers } from 'lucide-react'
 import { PageHeader } from '@/components/Common/PageHeader'
 import { KPICard } from '@/components/Common/KPICard'
 import { Button } from '@/components/ui/button'
@@ -113,8 +113,17 @@ interface Task {
 }
 
 type ViewType = 'list' | 'add' | 'edit' | 'view' | 'bulk-import'
-type TabType = 'lead-details' | 'personal' | 'business' | 'notes' | 'appointments' | 'tasks'
+type TabType = 'lead-details' | 'personal' | 'business' | 'notes' | 'appointments' | 'tasks' | string
 type DisplayMode = 'kanban' | 'list'
+
+interface CustomTab {
+  id: string
+  tab_id: string
+  pipeline_id: string
+  tab_name: string
+  tab_order: number
+  is_active: boolean
+}
 
 interface ImportResult {
   success: boolean
@@ -160,6 +169,7 @@ export function Leads() {
   const [importProgress, setImportProgress] = useState(0)
   const [importResults, setImportResults] = useState<ImportResult[]>([])
   const [showImportResults, setShowImportResults] = useState(false)
+  const [customTabs, setCustomTabs] = useState<CustomTab[]>([])
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -193,6 +203,12 @@ export function Leads() {
     fetchLeads()
     fetchTeamMembers()
   }, [])
+
+  useEffect(() => {
+    if (selectedLead?.pipeline_id) {
+      fetchCustomTabs(selectedLead.pipeline_id)
+    }
+  }, [selectedLead])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -268,6 +284,23 @@ export function Leads() {
       setTeamMembers(data || [])
     } catch (error) {
       console.error('Error fetching team members:', error)
+    }
+  }
+
+  const fetchCustomTabs = async (pipelineId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('custom_lead_tabs')
+        .select('*')
+        .eq('pipeline_id', pipelineId)
+        .eq('is_active', true)
+        .order('tab_order')
+
+      if (error) throw error
+      setCustomTabs(data || [])
+    } catch (error) {
+      console.error('Error fetching custom tabs:', error)
+      setCustomTabs([])
     }
   }
 
@@ -1927,19 +1960,24 @@ export function Leads() {
         </div>
 
         <div className="border-b border-gray-200 mb-6">
-          <div className="flex space-x-8">
+          <div className="flex space-x-8 overflow-x-auto">
             {[
               { id: 'lead-details', label: 'Lead Details', icon: Flag },
               { id: 'personal', label: 'Personal', icon: User },
               { id: 'business', label: 'Business', icon: Building },
               { id: 'notes', label: 'Notes', icon: StickyNote },
               { id: 'appointments', label: 'Appointments', icon: Calendar },
-              { id: 'tasks', label: 'Tasks', icon: CheckSquare }
+              { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+              ...customTabs.map(tab => ({
+                id: tab.tab_id,
+                label: tab.tab_name,
+                icon: Layers
+              }))
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setDetailTab(tab.id as TabType)}
-                className={`flex items-center space-x-2 pb-4 px-1 border-b-2 transition-colors ${
+                className={`flex items-center space-x-2 pb-4 px-1 border-b-2 transition-colors flex-shrink-0 ${
                   detailTab === tab.id
                     ? 'border-brand-primary text-brand-primary'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -2581,6 +2619,28 @@ export function Leads() {
               </CardContent>
             </Card>
           )}
+
+          {customTabs.map((customTab) => (
+            detailTab === customTab.tab_id && (
+              <Card key={customTab.id}>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Layers className="w-5 h-5" />
+                    <span>{customTab.tab_name}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Layers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-gray-600 mb-2">Custom tab content</p>
+                    <p className="text-sm text-gray-500">
+                      Custom fields for this tab will be available in future updates
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          ))}
         </div>
       </div>
     )
