@@ -157,6 +157,7 @@ export function Leads() {
   const [view, setView] = useState<ViewType>('list')
   const [displayMode, setDisplayMode] = useState<DisplayMode>('kanban')
   const [detailTab, setDetailTab] = useState<TabType>('lead-details')
+  const [leadDetailsSubTab, setLeadDetailsSubTab] = useState<string>('info')
   const [searchTerm, setSearchTerm] = useState('')
   const [pipelineFilter, setPipelineFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
@@ -2096,12 +2097,7 @@ export function Leads() {
               { id: 'business', label: 'Business', icon: Building },
               { id: 'notes', label: 'Notes', icon: StickyNote },
               { id: 'appointments', label: 'Appointments', icon: Calendar },
-              { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-              ...customTabs.map(tab => ({
-                id: tab.tab_id,
-                label: tab.tab_name,
-                icon: Layers
-              }))
+              { id: 'tasks', label: 'Tasks', icon: CheckSquare }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -2121,77 +2117,251 @@ export function Leads() {
 
         <div className="space-y-6">
           {detailTab === 'lead-details' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Lead Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm text-gray-600">Lead ID</label>
-                    <p className="font-medium mt-1">{selectedLead.lead_id}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Stage</label>
-                    <p className="font-medium mt-1">
-                      <Badge variant="secondary">{selectedLead.stage}</Badge>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Source</label>
-                    <p className="font-medium mt-1">{selectedLead.source}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Interest Level</label>
-                    <p className="font-medium mt-1">
-                      <Badge className={interestColors[selectedLead.interest]}>{selectedLead.interest}</Badge>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Email</label>
-                    <p className="font-medium mt-1">{selectedLead.email || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Phone</label>
-                    <p className="font-medium mt-1">{selectedLead.phone}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Company</label>
-                    <p className="font-medium mt-1">{selectedLead.company || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Assigned To</label>
-                    <p className="font-medium mt-1">{selectedLead.owner || 'Unassigned'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Address</label>
-                    <p className="font-medium mt-1">{selectedLead.address || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Created Date</label>
-                    <p className="font-medium mt-1">{formatDate(selectedLead.created_at)}</p>
-                  </div>
-                  {selectedLead.lead_score && (
-                    <div>
-                      <label className="text-sm text-gray-600">Lead Score</label>
-                      <p className="font-medium mt-1">{selectedLead.lead_score}/100</p>
-                    </div>
-                  )}
-                  {selectedLead.last_contact && (
-                    <div>
-                      <label className="text-sm text-gray-600">Last Contact</label>
-                      <p className="font-medium mt-1">{formatDate(selectedLead.last_contact)}</p>
-                    </div>
-                  )}
-                </div>
-                {selectedLead.notes && (
-                  <div className="mt-6">
-                    <label className="text-sm text-gray-600">Lead Notes</label>
-                    <p className="mt-2 p-4 bg-gray-50 rounded-lg text-gray-700">{selectedLead.notes}</p>
-                  </div>
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="md:w-64 flex-shrink-0">
+                <Card className="md:sticky md:top-6">
+                  <CardContent className="p-4">
+                    <nav className="space-y-1">
+                      {[
+                        { id: 'info', label: 'Lead Information', icon: Flag },
+                        ...customTabs.filter(tab => tab.is_active).map(tab => ({
+                          id: tab.tab_id,
+                          label: tab.tab_name,
+                          icon: Layers
+                        }))
+                      ].map((subTab) => (
+                        <button
+                          key={subTab.id}
+                          onClick={() => setLeadDetailsSubTab(subTab.id)}
+                          className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left ${
+                            leadDetailsSubTab === subTab.id
+                              ? 'bg-brand-primary text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <subTab.icon className="w-5 h-5" />
+                          <span className="font-medium">{subTab.label}</span>
+                        </button>
+                      ))}
+                    </nav>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex-1">
+                {leadDetailsSubTab === 'info' && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Lead Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div>
+                          <label className="text-sm text-gray-600">Lead ID</label>
+                          <p className="font-medium mt-1">{selectedLead.lead_id}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Stage</label>
+                          <p className="font-medium mt-1">
+                            <Badge variant="secondary">{selectedLead.stage}</Badge>
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Source</label>
+                          <p className="font-medium mt-1">{selectedLead.source}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Interest Level</label>
+                          <p className="font-medium mt-1">
+                            <Badge className={interestColors[selectedLead.interest]}>{selectedLead.interest}</Badge>
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Email</label>
+                          <p className="font-medium mt-1">{selectedLead.email || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Phone</label>
+                          <p className="font-medium mt-1">{selectedLead.phone}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Company</label>
+                          <p className="font-medium mt-1">{selectedLead.company || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Assigned To</label>
+                          <p className="font-medium mt-1">{selectedLead.owner || 'Unassigned'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Address</label>
+                          <p className="font-medium mt-1">{selectedLead.address || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-600">Created Date</label>
+                          <p className="font-medium mt-1">{formatDate(selectedLead.created_at)}</p>
+                        </div>
+                        {selectedLead.lead_score && (
+                          <div>
+                            <label className="text-sm text-gray-600">Lead Score</label>
+                            <p className="font-medium mt-1">{selectedLead.lead_score}/100</p>
+                          </div>
+                        )}
+                        {selectedLead.last_contact && (
+                          <div>
+                            <label className="text-sm text-gray-600">Last Contact</label>
+                            <p className="font-medium mt-1">{formatDate(selectedLead.last_contact)}</p>
+                          </div>
+                        )}
+                      </div>
+                      {selectedLead.notes && (
+                        <div className="mt-6">
+                          <label className="text-sm text-gray-600">Lead Notes</label>
+                          <p className="mt-2 p-4 bg-gray-50 rounded-lg text-gray-700">{selectedLead.notes}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+
+                {customTabs.map((customTab) => {
+                  const tabFields = customFields[customTab.id] || []
+                  return leadDetailsSubTab === customTab.tab_id && (
+                    <Card key={customTab.id}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2">
+                          <Layers className="w-5 h-5" />
+                          <span>{customTab.tab_name}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {tabFields.length === 0 ? (
+                          <div className="text-center py-12">
+                            <Layers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                            <p className="text-gray-600 mb-2">No custom fields configured</p>
+                            <p className="text-sm text-gray-500">
+                              Go to Settings &gt; Custom Fields to add fields to this tab
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            {customFieldsMessage && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className={`p-4 rounded-lg flex items-center space-x-2 ${
+                                  customFieldsMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                                }`}
+                              >
+                                {customFieldsMessage.type === 'success' ? (
+                                  <CheckCircle className="w-5 h-5" />
+                                ) : (
+                                  <AlertCircle className="w-5 h-5" />
+                                )}
+                                <span>{customFieldsMessage.text}</span>
+                              </motion.div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {tabFields.map((field) => (
+                                <div key={field.id}>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {field.field_name}
+                                    {field.is_required && <span className="text-red-500 ml-1">*</span>}
+                                  </label>
+                                  {field.field_type === 'text' && (
+                                    <Input
+                                      value={customFieldValues[field.id] || ''}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                                    />
+                                  )}
+                                  {field.field_type === 'dropdown_single' && (
+                                    <Select
+                                      value={customFieldValues[field.id] || ''}
+                                      onValueChange={(value) => handleCustomFieldChange(field.id, value)}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={`Select ${field.field_name.toLowerCase()}`} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {field.dropdown_options.map((option) => (
+                                          <SelectItem key={option} value={option}>
+                                            {option}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                  {field.field_type === 'dropdown_multiple' && (
+                                    <div className="space-y-2">
+                                      {field.dropdown_options.map((option) => {
+                                        const currentValues = customFieldValues[field.id]
+                                          ? customFieldValues[field.id].split(',').map(v => v.trim())
+                                          : []
+                                        const isChecked = currentValues.includes(option)
+
+                                        return (
+                                          <label key={option} className="flex items-center space-x-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={isChecked}
+                                              onChange={(e) => {
+                                                let newValues = [...currentValues]
+                                                if (e.target.checked) {
+                                                  newValues.push(option)
+                                                } else {
+                                                  newValues = newValues.filter(v => v !== option)
+                                                }
+                                                const newValue = newValues.join(', ')
+                                                handleCustomFieldChange(field.id, newValue)
+                                              }}
+                                              className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
+                                            />
+                                            <span className="text-sm text-gray-700">{option}</span>
+                                          </label>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                  {field.field_type === 'date' && (
+                                    <Input
+                                      type="date"
+                                      value={customFieldValues[field.id] || ''}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                    />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="flex justify-end pt-4 border-t">
+                              <Button
+                                onClick={saveAllCustomFields}
+                                disabled={isSavingCustomFields}
+                                className="min-w-[150px]"
+                              >
+                                {isSavingCustomFields ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    Save Changes
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
           )}
 
           {detailTab === 'personal' && (
@@ -2748,144 +2918,6 @@ export function Leads() {
               </CardContent>
             </Card>
           )}
-
-          {customTabs.map((customTab) => {
-            const tabFields = customFields[customTab.id] || []
-            return detailTab === customTab.tab_id && (
-              <Card key={customTab.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Layers className="w-5 h-5" />
-                    <span>{customTab.tab_name}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {tabFields.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Layers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-600 mb-2">No custom fields configured</p>
-                      <p className="text-sm text-gray-500">
-                        Go to Settings &gt; Custom Fields to add fields to this tab
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {customFieldsMessage && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className={`p-4 rounded-lg flex items-center space-x-2 ${
-                            customFieldsMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-                          }`}
-                        >
-                          {customFieldsMessage.type === 'success' ? (
-                            <CheckCircle className="w-5 h-5" />
-                          ) : (
-                            <AlertCircle className="w-5 h-5" />
-                          )}
-                          <span>{customFieldsMessage.text}</span>
-                        </motion.div>
-                      )}
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {tabFields.map((field) => (
-                          <div key={field.id}>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              {field.field_name}
-                              {field.is_required && <span className="text-red-500 ml-1">*</span>}
-                            </label>
-                            {field.field_type === 'text' && (
-                              <Input
-                                value={customFieldValues[field.id] || ''}
-                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
-                                placeholder={`Enter ${field.field_name.toLowerCase()}`}
-                              />
-                            )}
-                            {field.field_type === 'dropdown_single' && (
-                              <Select
-                                value={customFieldValues[field.id] || ''}
-                                onValueChange={(value) => handleCustomFieldChange(field.id, value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder={`Select ${field.field_name.toLowerCase()}`} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {field.dropdown_options.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                      {option}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                            {field.field_type === 'dropdown_multiple' && (
-                              <div className="space-y-2">
-                                {field.dropdown_options.map((option) => {
-                                  const currentValues = customFieldValues[field.id]
-                                    ? customFieldValues[field.id].split(',').map(v => v.trim())
-                                    : []
-                                  const isChecked = currentValues.includes(option)
-
-                                  return (
-                                    <label key={option} className="flex items-center space-x-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={(e) => {
-                                          let newValues = [...currentValues]
-                                          if (e.target.checked) {
-                                            newValues.push(option)
-                                          } else {
-                                            newValues = newValues.filter(v => v !== option)
-                                          }
-                                          const newValue = newValues.join(', ')
-                                          handleCustomFieldChange(field.id, newValue)
-                                        }}
-                                        className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
-                                      />
-                                      <span className="text-sm text-gray-700">{option}</span>
-                                    </label>
-                                  )
-                                })}
-                              </div>
-                            )}
-                            {field.field_type === 'date' && (
-                              <Input
-                                type="date"
-                                value={customFieldValues[field.id] || ''}
-                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="flex justify-end pt-4 border-t">
-                        <Button
-                          onClick={saveAllCustomFields}
-                          disabled={isSavingCustomFields}
-                          className="min-w-[150px]"
-                        >
-                          {isSavingCustomFields ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-4 h-4 mr-2" />
-                              Save Changes
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
         </div>
       </div>
     )
