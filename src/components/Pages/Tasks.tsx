@@ -104,6 +104,7 @@ export const Tasks: React.FC = () => {
   const [returnTo, setReturnTo] = useState<string | null>(null)
   const [returnToContactId, setReturnToContactId] = useState<string | null>(null)
   const [returnToLeadId, setReturnToLeadId] = useState<string | null>(null)
+  const [uploadingFiles, setUploadingFiles] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -213,6 +214,43 @@ export const Tasks: React.FC = () => {
     } catch (error) {
       console.error('Error fetching team members:', error)
     }
+  }
+
+  const handleFileUpload = async (files: File[]): Promise<string[]> => {
+    const FOLDER_ID = '88babbbd-3e5d-49fa-b4dc-ff4b81f2cdda'
+    const uploadedUrls: string[] = []
+
+    for (const file of files) {
+      try {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${FOLDER_ID}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+
+        const { data, error } = await supabase.storage
+          .from('media-files')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (error) {
+          console.error('Error uploading file:', error)
+          throw error
+        }
+
+        if (data) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('media-files')
+            .getPublicUrl(data.path)
+
+          uploadedUrls.push(publicUrl)
+        }
+      } catch (error) {
+        console.error('Error uploading file:', file.name, error)
+        alert(`Failed to upload ${file.name}`)
+      }
+    }
+
+    return uploadedUrls
   }
 
   const handleAddTask = async () => {
@@ -946,13 +984,36 @@ export const Tasks: React.FC = () => {
                           type="file"
                           multiple
                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const files = Array.from(e.target.files || [])
-                            console.log('Files selected:', files)
+                            if (files.length > 0) {
+                              setUploadingFiles(true)
+                              try {
+                                const uploadedUrls = await handleFileUpload(files)
+                                setFormData(prev => ({
+                                  ...prev,
+                                  supportingDocuments: [...prev.supportingDocuments, ...uploadedUrls]
+                                }))
+                              } catch (error) {
+                                console.error('Error uploading files:', error)
+                              } finally {
+                                setUploadingFiles(false)
+                                e.target.value = ''
+                              }
+                            }
                           }}
+                          disabled={uploadingFiles}
                           className="cursor-pointer"
                         />
-                        <p className="text-xs text-gray-500">Upload supporting documents for this task (PDF, DOC, XLS, Images)</p>
+                        {uploadingFiles && (
+                          <p className="text-xs text-blue-600 flex items-center gap-2">
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                            Uploading files...
+                          </p>
+                        )}
+                        {!uploadingFiles && (
+                          <p className="text-xs text-gray-500">Upload supporting documents for this task (PDF, DOC, XLS, Images)</p>
+                        )}
                         {formData.supportingDocuments && formData.supportingDocuments.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
                             {formData.supportingDocuments.map((doc, index) => (
@@ -1125,10 +1186,18 @@ export const Tasks: React.FC = () => {
                       <h4 className="text-lg font-semibold text-brand-text mb-3">Supporting Documents</h4>
                       <div className="flex flex-wrap gap-2">
                         {selectedTask.supporting_documents.map((doc, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                            <FileText className="w-3 h-3" />
-                            {doc.split('/').pop()}
-                          </Badge>
+                          <a
+                            key={index}
+                            href={doc}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block"
+                          >
+                            <Badge variant="secondary" className="flex items-center gap-1 hover:bg-gray-300 cursor-pointer transition-colors">
+                              <FileText className="w-3 h-3" />
+                              {doc.split('/').pop()?.split('_').slice(1).join('_') || 'Document'}
+                            </Badge>
+                          </a>
                         ))}
                       </div>
                     </div>
@@ -1523,13 +1592,36 @@ export const Tasks: React.FC = () => {
                       type="file"
                       multiple
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const files = Array.from(e.target.files || [])
-                        console.log('Files selected:', files)
+                        if (files.length > 0) {
+                          setUploadingFiles(true)
+                          try {
+                            const uploadedUrls = await handleFileUpload(files)
+                            setFormData(prev => ({
+                              ...prev,
+                              supportingDocuments: [...prev.supportingDocuments, ...uploadedUrls]
+                            }))
+                          } catch (error) {
+                            console.error('Error uploading files:', error)
+                          } finally {
+                            setUploadingFiles(false)
+                            e.target.value = ''
+                          }
+                        }
                       }}
+                      disabled={uploadingFiles}
                       className="cursor-pointer"
                     />
-                    <p className="text-xs text-gray-500">Upload supporting documents for this task (PDF, DOC, XLS, Images)</p>
+                    {uploadingFiles && (
+                      <p className="text-xs text-blue-600 flex items-center gap-2">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        Uploading files...
+                      </p>
+                    )}
+                    {!uploadingFiles && (
+                      <p className="text-xs text-gray-500">Upload supporting documents for this task (PDF, DOC, XLS, Images)</p>
+                    )}
                     {formData.supportingDocuments && formData.supportingDocuments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {formData.supportingDocuments.map((doc, index) => (
@@ -1668,10 +1760,18 @@ export const Tasks: React.FC = () => {
                         <div className="text-xs text-gray-500 mb-2">Supporting Documents</div>
                         <div className="flex flex-wrap gap-2">
                           {selectedTask.supporting_documents.map((doc, index) => (
-                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                              <FileText className="w-3 h-3" />
-                              {doc.split('/').pop()}
-                            </Badge>
+                            <a
+                              key={index}
+                              href={doc}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block"
+                            >
+                              <Badge variant="secondary" className="flex items-center gap-1 hover:bg-gray-300 cursor-pointer transition-colors">
+                                <FileText className="w-3 h-3" />
+                                {doc.split('/').pop()?.split('_').slice(1).join('_') || 'Document'}
+                              </Badge>
+                            </a>
                           ))}
                         </div>
                       </div>
