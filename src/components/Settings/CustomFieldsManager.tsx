@@ -13,7 +13,7 @@ interface CustomField {
   field_key: string
   custom_tab_id: string
   field_name: string
-  field_type: 'text' | 'dropdown_single' | 'dropdown_multiple' | 'date'
+  field_type: 'text' | 'dropdown_single' | 'dropdown_multiple' | 'date' | 'number' | 'email' | 'phone' | 'url' | 'currency' | 'longtext'
   dropdown_options: string[]
   is_required: boolean
   display_order: number
@@ -30,7 +30,13 @@ const fieldTypeLabels: Record<string, string> = {
   text: 'Text Field',
   dropdown_single: 'Dropdown (Single)',
   dropdown_multiple: 'Dropdown (Multiple)',
-  date: 'Date Picker'
+  date: 'Date Picker',
+  number: 'Number Field',
+  email: 'Email Field',
+  phone: 'Phone Number Field',
+  url: 'URL Field',
+  currency: 'Currency Field',
+  longtext: 'Long Text Field'
 }
 
 export function CustomFieldsManager({ customTabId, tabName }: CustomFieldsManagerProps) {
@@ -258,6 +264,12 @@ export function CustomFieldsManager({ customTabId, tabName }: CustomFieldsManage
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="text">Text Field</SelectItem>
+                        <SelectItem value="number">Number Field</SelectItem>
+                        <SelectItem value="email">Email Field</SelectItem>
+                        <SelectItem value="phone">Phone Number Field</SelectItem>
+                        <SelectItem value="url">URL Field</SelectItem>
+                        <SelectItem value="currency">Currency Field</SelectItem>
+                        <SelectItem value="longtext">Long Text Field</SelectItem>
                         <SelectItem value="dropdown_single">Dropdown (Single)</SelectItem>
                         <SelectItem value="dropdown_multiple">Dropdown (Multiple)</SelectItem>
                         <SelectItem value="date">Date Picker</SelectItem>
