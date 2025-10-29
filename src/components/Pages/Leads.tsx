@@ -374,33 +374,51 @@ export function Leads() {
     }))
   }
 
-  const saveCustomFieldValue = async (fieldId: string, value: string) => {
+  const saveAllCustomFields = async () => {
     if (!selectedLead) return
 
-    try {
-      const { data: existing } = await supabase
-        .from('custom_field_values')
-        .select('id')
-        .eq('custom_field_id', fieldId)
-        .eq('lead_id', selectedLead.id)
-        .maybeSingle()
+    setIsSavingCustomFields(true)
+    setCustomFieldsMessage(null)
 
-      if (existing) {
-        await supabase
+    try {
+      const allFields = Object.values(customFields).flat()
+
+      for (const field of allFields) {
+        const value = customFieldValues[field.id] || ''
+
+        const { data: existing } = await supabase
           .from('custom_field_values')
-          .update({ field_value: value, updated_at: new Date().toISOString() })
-          .eq('id', existing.id)
-      } else {
-        await supabase
-          .from('custom_field_values')
-          .insert([{
-            custom_field_id: fieldId,
-            lead_id: selectedLead.id,
-            field_value: value
-          }])
+          .select('id')
+          .eq('custom_field_id', field.id)
+          .eq('lead_id', selectedLead.id)
+          .maybeSingle()
+
+        if (existing) {
+          await supabase
+            .from('custom_field_values')
+            .update({ field_value: value, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+        } else {
+          if (value) {
+            await supabase
+              .from('custom_field_values')
+              .insert([{
+                custom_field_id: field.id,
+                lead_id: selectedLead.id,
+                field_value: value
+              }])
+          }
+        }
       }
+
+      setCustomFieldsMessage({ type: 'success', text: 'Custom fields saved successfully' })
+      setTimeout(() => setCustomFieldsMessage(null), 3000)
     } catch (error) {
-      console.error('Error saving custom field value:', error)
+      console.error('Error saving custom field values:', error)
+      setCustomFieldsMessage({ type: 'error', text: 'Failed to save custom fields' })
+      setTimeout(() => setCustomFieldsMessage(null), 3000)
+    } finally {
+      setIsSavingCustomFields(false)
     }
   }
 
@@ -2742,83 +2760,117 @@ export function Leads() {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {tabFields.map((field) => (
-                        <div key={field.id}>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {field.field_name}
-                            {field.is_required && <span className="text-red-500 ml-1">*</span>}
-                          </label>
-                          {field.field_type === 'text' && (
-                            <Input
-                              value={customFieldValues[field.id] || ''}
-                              onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
-                              onBlur={(e) => saveCustomFieldValue(field.id, e.target.value)}
-                              placeholder={`Enter ${field.field_name.toLowerCase()}`}
-                            />
+                    <div className="space-y-6">
+                      {customFieldsMessage && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className={`p-4 rounded-lg flex items-center space-x-2 ${
+                            customFieldsMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                          }`}
+                        >
+                          {customFieldsMessage.type === 'success' ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5" />
                           )}
-                          {field.field_type === 'dropdown_single' && (
-                            <Select
-                              value={customFieldValues[field.id] || ''}
-                              onValueChange={(value) => {
-                                handleCustomFieldChange(field.id, value)
-                                saveCustomFieldValue(field.id, value)
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={`Select ${field.field_name.toLowerCase()}`} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {field.dropdown_options.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                          {field.field_type === 'dropdown_multiple' && (
-                            <div className="space-y-2">
-                              {field.dropdown_options.map((option) => {
-                                const currentValues = customFieldValues[field.id]
-                                  ? customFieldValues[field.id].split(',').map(v => v.trim())
-                                  : []
-                                const isChecked = currentValues.includes(option)
+                          <span>{customFieldsMessage.text}</span>
+                        </motion.div>
+                      )}
 
-                                return (
-                                  <label key={option} className="flex items-center space-x-2">
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={(e) => {
-                                        let newValues = [...currentValues]
-                                        if (e.target.checked) {
-                                          newValues.push(option)
-                                        } else {
-                                          newValues = newValues.filter(v => v !== option)
-                                        }
-                                        const newValue = newValues.join(', ')
-                                        handleCustomFieldChange(field.id, newValue)
-                                        saveCustomFieldValue(field.id, newValue)
-                                      }}
-                                      className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
-                                    />
-                                    <span className="text-sm text-gray-700">{option}</span>
-                                  </label>
-                                )
-                              })}
-                            </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {tabFields.map((field) => (
+                          <div key={field.id}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {field.field_name}
+                              {field.is_required && <span className="text-red-500 ml-1">*</span>}
+                            </label>
+                            {field.field_type === 'text' && (
+                              <Input
+                                value={customFieldValues[field.id] || ''}
+                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                              />
+                            )}
+                            {field.field_type === 'dropdown_single' && (
+                              <Select
+                                value={customFieldValues[field.id] || ''}
+                                onValueChange={(value) => handleCustomFieldChange(field.id, value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={`Select ${field.field_name.toLowerCase()}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {field.dropdown_options.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            {field.field_type === 'dropdown_multiple' && (
+                              <div className="space-y-2">
+                                {field.dropdown_options.map((option) => {
+                                  const currentValues = customFieldValues[field.id]
+                                    ? customFieldValues[field.id].split(',').map(v => v.trim())
+                                    : []
+                                  const isChecked = currentValues.includes(option)
+
+                                  return (
+                                    <label key={option} className="flex items-center space-x-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={(e) => {
+                                          let newValues = [...currentValues]
+                                          if (e.target.checked) {
+                                            newValues.push(option)
+                                          } else {
+                                            newValues = newValues.filter(v => v !== option)
+                                          }
+                                          const newValue = newValues.join(', ')
+                                          handleCustomFieldChange(field.id, newValue)
+                                        }}
+                                        className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
+                                      />
+                                      <span className="text-sm text-gray-700">{option}</span>
+                                    </label>
+                                  )
+                                })}
+                              </div>
+                            )}
+                            {field.field_type === 'date' && (
+                              <Input
+                                type="date"
+                                value={customFieldValues[field.id] || ''}
+                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex justify-end pt-4 border-t">
+                        <Button
+                          onClick={saveAllCustomFields}
+                          disabled={isSavingCustomFields}
+                          className="min-w-[150px]"
+                        >
+                          {isSavingCustomFields ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4 mr-2" />
+                              Save Changes
+                            </>
                           )}
-                          {field.field_type === 'date' && (
-                            <Input
-                              type="date"
-                              value={customFieldValues[field.id] || ''}
-                              onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
-                              onBlur={(e) => saveCustomFieldValue(field.id, e.target.value)}
-                            />
-                          )}
-                        </div>
-                      ))}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>
