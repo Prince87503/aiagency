@@ -2322,33 +2322,70 @@ export function Leads() {
                                   )}
                                   {field.field_type === 'dropdown_multiple' && (
                                     <div className="space-y-2">
-                                      {field.dropdown_options.map((option) => {
-                                        const currentValues = customFieldValues[field.id]
-                                          ? customFieldValues[field.id].split(',').map(v => v.trim())
-                                          : []
-                                        const isChecked = currentValues.includes(option)
+                                      <Select
+                                        value=""
+                                        onValueChange={(value) => {
+                                          const currentValues = customFieldValues[field.id]
+                                            ? customFieldValues[field.id].split(',').map(v => v.trim()).filter(v => v)
+                                            : []
 
-                                        return (
-                                          <label key={option} className="flex items-center space-x-2">
-                                            <input
-                                              type="checkbox"
-                                              checked={isChecked}
-                                              onChange={(e) => {
-                                                let newValues = [...currentValues]
-                                                if (e.target.checked) {
-                                                  newValues.push(option)
-                                                } else {
-                                                  newValues = newValues.filter(v => v !== option)
-                                                }
-                                                const newValue = newValues.join(', ')
-                                                handleCustomFieldChange(field.id, newValue, 'dropdown_multiple')
-                                              }}
-                                              className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
-                                            />
-                                            <span className="text-sm text-gray-700">{option}</span>
-                                          </label>
-                                        )
-                                      })}
+                                          if (!currentValues.includes(value)) {
+                                            const newValues = [...currentValues, value]
+                                            const newValue = newValues.join(', ')
+                                            handleCustomFieldChange(field.id, newValue, 'dropdown_multiple')
+                                          }
+                                        }}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder={`Select ${field.field_name.toLowerCase()}`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {field.dropdown_options.map((option) => {
+                                            const currentValues = customFieldValues[field.id]
+                                              ? customFieldValues[field.id].split(',').map(v => v.trim()).filter(v => v)
+                                              : []
+                                            const isSelected = currentValues.includes(option)
+
+                                            return (
+                                              <SelectItem
+                                                key={option}
+                                                value={option}
+                                                disabled={isSelected}
+                                              >
+                                                {option} {isSelected && '✓'}
+                                              </SelectItem>
+                                            )
+                                          })}
+                                        </SelectContent>
+                                      </Select>
+
+                                      {customFieldValues[field.id] && customFieldValues[field.id].split(',').map(v => v.trim()).filter(v => v).length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                          {customFieldValues[field.id].split(',').map(v => v.trim()).filter(v => v).map((value) => (
+                                            <Badge
+                                              key={value}
+                                              variant="secondary"
+                                              className="bg-brand-primary text-white flex items-center gap-1"
+                                            >
+                                              {value}
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const currentValues = customFieldValues[field.id]
+                                                    .split(',')
+                                                    .map(v => v.trim())
+                                                    .filter(v => v !== value)
+                                                  const newValue = currentValues.join(', ')
+                                                  handleCustomFieldChange(field.id, newValue, 'dropdown_multiple')
+                                                }}
+                                                className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+                                              >
+                                                <X className="w-3 h-3" />
+                                              </button>
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                   {field.field_type === 'date' && (
