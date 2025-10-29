@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ValidatedInput } from '@/components/ui/validated-input'
-import { formatDate, formatTime } from '@/lib/utils'
+import { formatDate, formatTime, convertToISTForDB } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import * as XLSX from 'xlsx'
@@ -428,7 +428,12 @@ export function Leads() {
 
     try {
       for (const field of allFields) {
-        const value = (customFieldValues[field.id] || '').trim()
+        let value = (customFieldValues[field.id] || '').trim()
+
+        // Convert date values to IST timezone format
+        if (field.field_type === 'date' && value) {
+          value = convertToISTForDB(value) || value
+        }
 
         const { data: existing } = await supabase
           .from('custom_field_values')

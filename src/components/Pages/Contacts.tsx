@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { formatDate, formatTime, getPhoneValidationError, getEmailValidationError } from '@/lib/utils'
+import { formatDate, formatTime, getPhoneValidationError, getEmailValidationError, convertToISTForDB } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { ValidatedInput } from '@/components/ui/validated-input'
 import { format } from 'date-fns'
@@ -243,7 +243,7 @@ export function Contacts() {
           full_name: formData.fullName,
           email: formData.emailAddress,
           phone: formData.phoneNumber,
-          date_of_birth: formData.dateOfBirth || null,
+          date_of_birth: convertToISTForDB(formData.dateOfBirth),
           gender: formData.gender || null,
           education_level: formData.educationLevel || null,
           profession: formData.profession || null,
@@ -308,7 +308,7 @@ export function Contacts() {
           full_name: formData.fullName,
           email: formData.emailAddress,
           phone: formData.phoneNumber,
-          date_of_birth: formData.dateOfBirth || null,
+          date_of_birth: convertToISTForDB(formData.dateOfBirth),
           gender: formData.gender || null,
           education_level: formData.educationLevel || null,
           profession: formData.profession || null,

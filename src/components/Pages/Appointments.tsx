@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/lib/supabase'
-import { formatDate, formatTime, formatDateTime, getISTDateString, formatLongDate } from '@/lib/utils'
+import { formatDate, formatTime, formatDateTime, getISTDateString, formatLongDate, convertToISTForDB } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface Contact {
@@ -410,7 +410,7 @@ export function Appointments() {
           contact_name: formData.contactName,
           contact_phone: formData.contactPhone,
           contact_email: formData.contactEmail || null,
-          appointment_date: formData.appointmentDate,
+          appointment_date: convertToISTForDB(formData.appointmentDate),
           appointment_time: formData.appointmentTime,
           duration_minutes: parseInt(formData.durationMinutes),
           location: formData.location || null,
@@ -444,7 +444,7 @@ export function Appointments() {
           contact_name: formData.contactName,
           contact_phone: formData.contactPhone,
           contact_email: formData.contactEmail || null,
-          appointment_date: formData.appointmentDate,
+          appointment_date: convertToISTForDB(formData.appointmentDate),
           appointment_time: formData.appointmentTime,
           duration_minutes: parseInt(formData.durationMinutes),
           location: formData.location || null,

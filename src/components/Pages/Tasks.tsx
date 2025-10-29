@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/lib/supabase'
-import { formatDate, formatDateTime } from '@/lib/utils'
+import { formatDate, formatDateTime, convertToISTForDB } from '@/lib/utils'
 
 interface Task {
   id: string
@@ -386,8 +386,8 @@ export const Tasks: React.FC = () => {
         contact_id: selectedContactId,
         contact_name: formData.contactName || null,
         contact_phone: formData.contactPhone || null,
-        due_date: formData.dueDate || null,
-        start_date: formData.startDate || null,
+        due_date: convertToISTForDB(formData.dueDate),
+        start_date: convertToISTForDB(formData.startDate),
         estimated_hours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : null,
         category: formData.category,
         progress_percentage: formData.progressPercentage || 0,
@@ -439,8 +439,8 @@ export const Tasks: React.FC = () => {
         contact_id: selectedContactId,
         contact_name: formData.contactName || null,
         contact_phone: formData.contactPhone || null,
-        due_date: formData.dueDate || null,
-        start_date: formData.startDate || null,
+        due_date: convertToISTForDB(formData.dueDate),
+        start_date: convertToISTForDB(formData.startDate),
         estimated_hours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : null,
         category: formData.category,
         progress_percentage: formData.progressPercentage,
