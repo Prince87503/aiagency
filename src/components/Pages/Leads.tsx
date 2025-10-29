@@ -192,6 +192,7 @@ export function Leads() {
   const [customTabs, setCustomTabs] = useState<CustomTab[]>([])
   const [customFields, setCustomFields] = useState<Record<string, CustomField[]>>({})
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
+  const [customFieldErrors, setCustomFieldErrors] = useState<Record<string, string>>({})
   const [isSavingCustomFields, setIsSavingCustomFields] = useState(false)
   const [customFieldsMessage, setCustomFieldsMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [formData, setFormData] = useState({
@@ -370,22 +371,62 @@ export function Leads() {
     }
   }
 
-  const handleCustomFieldChange = (fieldId: string, value: string) => {
+  const validateCustomField = (fieldType: string, value: string): string | null => {
+    if (!value) return null
+
+    if (fieldType === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(value)) {
+        return 'Please enter a valid email address'
+      }
+    }
+
+    if (fieldType === 'phone') {
+      const phoneRegex = /^[6-9]\d{9}$/
+      if (!phoneRegex.test(value.replace(/\s+/g, ''))) {
+        return 'Please enter a valid 10-digit Indian mobile number'
+      }
+    }
+
+    return null
+  }
+
+  const handleCustomFieldChange = (fieldId: string, value: string, fieldType: string) => {
     setCustomFieldValues(prev => ({
       ...prev,
       [fieldId]: value
+    }))
+
+    const error = validateCustomField(fieldType, value)
+    setCustomFieldErrors(prev => ({
+      ...prev,
+      [fieldId]: error || ''
     }))
   }
 
   const saveAllCustomFields = async () => {
     if (!selectedLead) return
 
+    const allFields = Object.values(customFields).flat()
+    const hasErrors = allFields.some(field => {
+      const value = customFieldValues[field.id]
+      if (value) {
+        const error = validateCustomField(field.field_type, value)
+        return error !== null
+      }
+      return false
+    })
+
+    if (hasErrors) {
+      setCustomFieldsMessage({ type: 'error', text: 'Please fix validation errors before saving' })
+      setTimeout(() => setCustomFieldsMessage(null), 3000)
+      return
+    }
+
     setIsSavingCustomFields(true)
     setCustomFieldsMessage(null)
 
     try {
-      const allFields = Object.values(customFields).flat()
-
       for (const field of allFields) {
         const value = (customFieldValues[field.id] || '').trim()
 
@@ -2258,14 +2299,14 @@ export function Leads() {
                                   {field.field_type === 'text' && (
                                     <Input
                                       value={customFieldValues[field.id] || ''}
-                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'text')}
                                       placeholder={`Enter ${field.field_name.toLowerCase()}`}
                                     />
                                   )}
                                   {field.field_type === 'dropdown_single' && (
                                     <Select
                                       value={customFieldValues[field.id] || ''}
-                                      onValueChange={(value) => handleCustomFieldChange(field.id, value)}
+                                      onValueChange={(value) => handleCustomFieldChange(field.id, value, 'dropdown_single')}
                                     >
                                       <SelectTrigger>
                                         <SelectValue placeholder={`Select ${field.field_name.toLowerCase()}`} />
@@ -2300,7 +2341,7 @@ export function Leads() {
                                                   newValues = newValues.filter(v => v !== option)
                                                 }
                                                 const newValue = newValues.join(', ')
-                                                handleCustomFieldChange(field.id, newValue)
+                                                handleCustomFieldChange(field.id, newValue, 'dropdown_multiple')
                                               }}
                                               className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
                                             />
@@ -2314,49 +2355,62 @@ export function Leads() {
                                     <Input
                                       type="date"
                                       value={customFieldValues[field.id] || ''}
-                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'date')}
                                     />
                                   )}
                                   {field.field_type === 'number' && (
                                     <Input
                                       type="number"
                                       value={customFieldValues[field.id] || ''}
-                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'number')}
                                       placeholder={`Enter ${field.field_name.toLowerCase()}`}
                                     />
                                   )}
                                   {field.field_type === 'email' && (
-                                    <Input
-                                      type="email"
-                                      value={customFieldValues[field.id] || ''}
-                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
-                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
-                                    />
+                                    <div>
+                                      <Input
+                                        type="email"
+                                        value={customFieldValues[field.id] || ''}
+                                        onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'email')}
+                                        placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                                        className={customFieldErrors[field.id] ? 'border-red-500' : ''}
+                                      />
+                                      {customFieldErrors[field.id] && (
+                                        <p className="text-xs text-red-500 mt-1">{customFieldErrors[field.id]}</p>
+                                      )}
+                                    </div>
                                   )}
                                   {field.field_type === 'phone' && (
-                                    <Input
-                                      type="tel"
-                                      value={customFieldValues[field.id] || ''}
-                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
-                                      placeholder={`Enter ${field.field_name.toLowerCase()}`}
-                                    />
+                                    <div>
+                                      <Input
+                                        type="tel"
+                                        value={customFieldValues[field.id] || ''}
+                                        onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'phone')}
+                                        placeholder="Enter 10-digit mobile number"
+                                        maxLength={10}
+                                        className={customFieldErrors[field.id] ? 'border-red-500' : ''}
+                                      />
+                                      {customFieldErrors[field.id] && (
+                                        <p className="text-xs text-red-500 mt-1">{customFieldErrors[field.id]}</p>
+                                      )}
+                                    </div>
                                   )}
                                   {field.field_type === 'url' && (
                                     <Input
                                       type="url"
                                       value={customFieldValues[field.id] || ''}
-                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'url')}
                                       placeholder={`Enter ${field.field_name.toLowerCase()}`}
                                     />
                                   )}
                                   {field.field_type === 'currency' && (
                                     <div className="relative">
-                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                                       <Input
                                         type="number"
                                         step="0.01"
                                         value={customFieldValues[field.id] || ''}
-                                        onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                        onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'currency')}
                                         placeholder="0.00"
                                         className="pl-7"
                                       />
@@ -2365,7 +2419,7 @@ export function Leads() {
                                   {field.field_type === 'longtext' && (
                                     <Textarea
                                       value={customFieldValues[field.id] || ''}
-                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                      onChange={(e) => handleCustomFieldChange(field.id, e.target.value, 'longtext')}
                                       placeholder={`Enter ${field.field_name.toLowerCase()}`}
                                       rows={4}
                                     />
