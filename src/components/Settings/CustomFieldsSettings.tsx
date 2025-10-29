@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Trash2, Save, X, AlertCircle, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, Save, X, AlertCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
+import { CustomFieldsManager } from './CustomFieldsManager'
 
 interface CustomTab {
   id: string
@@ -33,6 +34,7 @@ export function CustomFieldsSettings() {
   const [editingTab, setEditingTab] = useState<string | null>(null)
   const [newTabName, setNewTabName] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [expandedTabId, setExpandedTabId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPipelines()
@@ -272,95 +274,124 @@ export function CustomFieldsSettings() {
                 <p className="text-sm text-gray-400">Add your first custom tab below</p>
               </div>
             ) : (
-              <div className="space-y-3 mb-6">
+              <div className="space-y-4 mb-6">
                 {customTabs.map((tab, index) => (
                   <motion.div
                     key={tab.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                    className="border border-gray-200 rounded-lg overflow-hidden"
                   >
-                    <div className="flex items-center space-x-4 flex-1">
-                      <Badge variant="secondary" className="bg-brand-primary text-white">
-                        Tab {tab.tab_order}
-                      </Badge>
-                      {editingTab === tab.id ? (
-                        <Input
-                          defaultValue={tab.tab_name}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleUpdateTab(tab.id, e.currentTarget.value)
-                            } else if (e.key === 'Escape') {
-                              setEditingTab(null)
-                            }
-                          }}
-                          autoFocus
-                          className="max-w-md"
-                        />
-                      ) : (
-                        <div className="flex items-center space-x-3">
-                          <span className="font-medium text-gray-900">{tab.tab_name}</span>
-                          <Badge className={tab.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                            {tab.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {editingTab === tab.id ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              const input = document.querySelector(`input[value="${tab.tab_name}"]`) as HTMLInputElement
-                              if (input) {
-                                handleUpdateTab(tab.id, input.value)
+                    <div className="flex items-center justify-between p-4 bg-gray-50">
+                      <div className="flex items-center space-x-4 flex-1">
+                        <Badge variant="secondary" className="bg-brand-primary text-white">
+                          Tab {tab.tab_order}
+                        </Badge>
+                        {editingTab === tab.id ? (
+                          <Input
+                            defaultValue={tab.tab_name}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleUpdateTab(tab.id, e.currentTarget.value)
+                              } else if (e.key === 'Escape') {
+                                setEditingTab(null)
                               }
                             }}
-                            disabled={saving}
-                          >
-                            <Save className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingTab(null)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingTab(tab.id)}
-                            disabled={saving}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleToggleActive(tab.id, tab.is_active)}
-                            disabled={saving}
-                          >
-                            {tab.is_active ? 'Deactivate' : 'Activate'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteTab(tab.id)}
-                            disabled={saving}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
+                            autoFocus
+                            className="max-w-md"
+                          />
+                        ) : (
+                          <div className="flex items-center space-x-3">
+                            <span className="font-medium text-gray-900">{tab.tab_name}</span>
+                            <Badge className={tab.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                              {tab.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {editingTab === tab.id ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const input = document.querySelector(`input[value="${tab.tab_name}"]`) as HTMLInputElement
+                                if (input) {
+                                  handleUpdateTab(tab.id, input.value)
+                                }
+                              }}
+                              disabled={saving}
+                            >
+                              <Save className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingTab(null)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setExpandedTabId(expandedTabId === tab.id ? null : tab.id)}
+                            >
+                              {expandedTabId === tab.id ? (
+                                <>
+                                  <ChevronUp className="w-4 h-4 mr-2" />
+                                  Hide Fields
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="w-4 h-4 mr-2" />
+                                  Manage Fields
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingTab(tab.id)}
+                              disabled={saving}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleToggleActive(tab.id, tab.is_active)}
+                              disabled={saving}
+                            >
+                              {tab.is_active ? 'Deactivate' : 'Activate'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteTab(tab.id)}
+                              disabled={saving}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
+                    {expandedTabId === tab.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="border-t border-gray-200 p-4 bg-white"
+                      >
+                        <CustomFieldsManager customTabId={tab.id} tabName={tab.tab_name} />
+                      </motion.div>
+                    )}
                   </motion.div>
                 ))}
               </div>
