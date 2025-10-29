@@ -236,7 +236,7 @@ export function CustomFieldsSettings() {
         <CardHeader>
           <CardTitle>Custom Lead Tabs</CardTitle>
           <p className="text-sm text-gray-600 mt-2">
-            Create up to 3 custom tabs for each pipeline. These tabs will appear in lead add, view, and edit pages after the Tasks tab.
+            Create up to 3 custom tabs for each pipeline. These tabs will appear as sub-tabs within the Lead Details section of the lead view page.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -447,7 +447,7 @@ export function CustomFieldsSettings() {
             </li>
             <li className="flex items-start space-x-2">
               <span className="text-brand-primary font-bold">2.</span>
-              <span>Tabs will appear in the lead detail view after the default tabs (Lead Details, Personal, Business, Notes, Appointments, Tasks).</span>
+              <span>Custom tabs appear as sub-tabs within the "Lead Details" main tab, after the "Lead Information" sub-tab.</span>
             </li>
             <li className="flex items-start space-x-2">
               <span className="text-brand-primary font-bold">3.</span>
@@ -459,7 +459,7 @@ export function CustomFieldsSettings() {
             </li>
             <li className="flex items-start space-x-2">
               <span className="text-brand-primary font-bold">5.</span>
-              <span>Custom fields can be added to these tabs in future updates.</span>
+              <span>Add custom fields to each tab by clicking "Manage Fields" to capture additional lead information.</span>
             </li>
           </ul>
         </CardContent>
