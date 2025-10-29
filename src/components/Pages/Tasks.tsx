@@ -1017,18 +1017,18 @@ export const Tasks: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Start Date & Time</label>
                       <Input
-                        type="date"
+                        type="datetime-local"
                         value={formData.startDate}
                         onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Due Date & Time</label>
                       <Input
-                        type="date"
+                        type="datetime-local"
                         value={formData.dueDate}
                         min={formData.startDate || undefined}
                         onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
@@ -1624,18 +1624,18 @@ export const Tasks: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date & Time</label>
                     <Input
-                      type="date"
+                      type="datetime-local"
                       value={formData.startDate}
                       onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Due Date & Time</label>
                     <Input
-                      type="date"
+                      type="datetime-local"
                       value={formData.dueDate}
                       min={formData.startDate || undefined}
                       onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
