@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 155 100% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 155 100% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 100% 8%;
+    --primary: 157 91% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 157 30% 96%;
+    --secondary-foreground: 157 91% 18%;
+    --muted: 157 30% 96%;
+    --muted-foreground: 157 20% 40%;
+    --accent: 142 76% 47%;
+    --accent-foreground: 157 91% 18%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 157 30% 90%;
+    --input: 157 30% 90%;
+    --ring: 157 91% 18%;
+    --radius: 1.25rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-surface font-sans text-brand-text;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .ppt-slide {
+    @apply min-h-screen bg-gradient-to-br from-surface to-white;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  }
+  
+  .brand-gradient {
+    @apply bg-gradient-to-r from-brand-primary to-brand-accent;
+  }
+  
+  .dots-bg {
+    background-image: radial-gradient(circle, #065c53 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.1;
+  }
+}
+
+.sidebar-nav {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .invoice-container,
+  .invoice-container * {
+    visibility: visible;
+  }
+
+  .invoice-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  @page {
+    margin: 1cm;
+  }
+}
