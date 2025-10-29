@@ -125,6 +125,25 @@ interface CustomTab {
   is_active: boolean
 }
 
+interface CustomField {
+  id: string
+  field_key: string
+  custom_tab_id: string
+  field_name: string
+  field_type: 'text' | 'dropdown_single' | 'dropdown_multiple' | 'date'
+  dropdown_options: string[]
+  is_required: boolean
+  display_order: number
+  is_active: boolean
+}
+
+interface CustomFieldValue {
+  id?: string
+  custom_field_id: string
+  lead_id: string
+  field_value: string
+}
+
 interface ImportResult {
   success: boolean
   row: number
@@ -170,6 +189,8 @@ export function Leads() {
   const [importResults, setImportResults] = useState<ImportResult[]>([])
   const [showImportResults, setShowImportResults] = useState(false)
   const [customTabs, setCustomTabs] = useState<CustomTab[]>([])
+  const [customFields, setCustomFields] = useState<Record<string, CustomField[]>>({})
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -298,9 +319,88 @@ export function Leads() {
 
       if (error) throw error
       setCustomTabs(data || [])
+
+      if (data && data.length > 0) {
+        const tabIds = data.map(tab => tab.id)
+        const { data: fieldsData, error: fieldsError } = await supabase
+          .from('custom_fields')
+          .select('*')
+          .in('custom_tab_id', tabIds)
+          .eq('is_active', true)
+          .order('display_order')
+
+        if (fieldsError) throw fieldsError
+
+        const fieldsByTab: Record<string, CustomField[]> = {}
+        fieldsData?.forEach(field => {
+          if (!fieldsByTab[field.custom_tab_id]) {
+            fieldsByTab[field.custom_tab_id] = []
+          }
+          fieldsByTab[field.custom_tab_id].push(field)
+        })
+        setCustomFields(fieldsByTab)
+      }
     } catch (error) {
       console.error('Error fetching custom tabs:', error)
       setCustomTabs([])
+      setCustomFields({})
+    }
+  }
+
+  const fetchCustomFieldValues = async (leadId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('custom_field_values')
+        .select('*')
+        .eq('lead_id', leadId)
+
+      if (error) throw error
+
+      const values: Record<string, string> = {}
+      data?.forEach(value => {
+        values[value.custom_field_id] = value.field_value || ''
+      })
+      setCustomFieldValues(values)
+    } catch (error) {
+      console.error('Error fetching custom field values:', error)
+      setCustomFieldValues({})
+    }
+  }
+
+  const handleCustomFieldChange = (fieldId: string, value: string) => {
+    setCustomFieldValues(prev => ({
+      ...prev,
+      [fieldId]: value
+    }))
+  }
+
+  const saveCustomFieldValue = async (fieldId: string, value: string) => {
+    if (!selectedLead) return
+
+    try {
+      const { data: existing } = await supabase
+        .from('custom_field_values')
+        .select('id')
+        .eq('custom_field_id', fieldId)
+        .eq('lead_id', selectedLead.id)
+        .maybeSingle()
+
+      if (existing) {
+        await supabase
+          .from('custom_field_values')
+          .update({ field_value: value, updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+      } else {
+        await supabase
+          .from('custom_field_values')
+          .insert([{
+            custom_field_id: fieldId,
+            lead_id: selectedLead.id,
+            field_value: value
+          }])
+      }
+    } catch (error) {
+      console.error('Error saving custom field value:', error)
     }
   }
 
@@ -481,6 +581,8 @@ export function Leads() {
       await fetchContactAppointments(contact.id)
       await fetchContactTasks(contact.id)
     }
+
+    await fetchCustomFieldValues(lead.id)
   }
 
   const handleAddClick = () => {
@@ -2620,8 +2722,9 @@ export function Leads() {
             </Card>
           )}
 
-          {customTabs.map((customTab) => (
-            detailTab === customTab.tab_id && (
+          {customTabs.map((customTab) => {
+            const tabFields = customFields[customTab.id] || []
+            return detailTab === customTab.tab_id && (
               <Card key={customTab.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -2630,17 +2733,98 @@ export function Leads() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-12">
-                    <Layers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-gray-600 mb-2">Custom tab content</p>
-                    <p className="text-sm text-gray-500">
-                      Custom fields for this tab will be available in future updates
-                    </p>
-                  </div>
+                  {tabFields.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Layers className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-600 mb-2">No custom fields configured</p>
+                      <p className="text-sm text-gray-500">
+                        Go to Settings &gt; Custom Fields to add fields to this tab
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {tabFields.map((field) => (
+                        <div key={field.id}>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {field.field_name}
+                            {field.is_required && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          {field.field_type === 'text' && (
+                            <Input
+                              value={customFieldValues[field.id] || ''}
+                              onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                              onBlur={(e) => saveCustomFieldValue(field.id, e.target.value)}
+                              placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                            />
+                          )}
+                          {field.field_type === 'dropdown_single' && (
+                            <Select
+                              value={customFieldValues[field.id] || ''}
+                              onValueChange={(value) => {
+                                handleCustomFieldChange(field.id, value)
+                                saveCustomFieldValue(field.id, value)
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={`Select ${field.field_name.toLowerCase()}`} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {field.dropdown_options.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {field.field_type === 'dropdown_multiple' && (
+                            <div className="space-y-2">
+                              {field.dropdown_options.map((option) => {
+                                const currentValues = customFieldValues[field.id]
+                                  ? customFieldValues[field.id].split(',').map(v => v.trim())
+                                  : []
+                                const isChecked = currentValues.includes(option)
+
+                                return (
+                                  <label key={option} className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        let newValues = [...currentValues]
+                                        if (e.target.checked) {
+                                          newValues.push(option)
+                                        } else {
+                                          newValues = newValues.filter(v => v !== option)
+                                        }
+                                        const newValue = newValues.join(', ')
+                                        handleCustomFieldChange(field.id, newValue)
+                                        saveCustomFieldValue(field.id, newValue)
+                                      }}
+                                      className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
+                                    />
+                                    <span className="text-sm text-gray-700">{option}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          )}
+                          {field.field_type === 'date' && (
+                            <Input
+                              type="date"
+                              value={customFieldValues[field.id] || ''}
+                              onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                              onBlur={(e) => saveCustomFieldValue(field.id, e.target.value)}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )
-          ))}
+          })}
         </div>
       </div>
     )
